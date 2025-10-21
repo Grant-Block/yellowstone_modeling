@@ -1,0 +1,18 @@
+Source dim = 0.5*13 km, 1.0*27.5 km 
+CR x,y = 32, 55km
+CR is eliptical cylinder, CR height = 26 km (2-28 km depth)
+CR shift: (-5.0, -0.75) km (based on tomography)
+Uniform CR
+Maxwell rheology
+eta_CR = 6.308E16
+Courser mesh, refined surface and CR (5 km size)
+No asthenosphere, smaller domain size (200x200x100) km
+Source depth = 4.0 
+dP/dt= derived from GPS (max 13 kPa/yr)
+T = derived from GPS
+long depress-repress before YS pressure function
+P_start=100 kPa
+(Similar to run164 w/ coarser mesh and new Vs, and changed dP/dt)
+
+
+

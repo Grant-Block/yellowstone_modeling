@@ -1,0 +1,24 @@
+Source dim = 0.5*13 km, 1.0*27.5 km 
+Nested CR
+outer CR x,y = 32, 55km
+inner CR x,y = 22, 40km
+CR is eliptical cylinder, outer CR height = 26 km (2-28 km depth)
+inner CR height = 19 km (3-22 km depth)
+outer CR shift: (-5.0, -0.75) km (based on tomography)
+no inner CR shift
+Burgers rheology
+CR Vs = 2500 m/s
+inner CR eta1, eta2 = 1.2616E17 Pa*s, 1.2616E16 Pa*s
+outer CR eta1, eta2 = 3.154E16 Pa*s, 6.308E15 Pa*s
+Source depth = 5.0 
+No asthenosphere, domain depth = 100 km. 
+Courser mesh with CR meshing distance = 5 km
+Smaller domain size (200x200x100) km
+dP/dt= derived from GPS (max 23 kPa/yr)
+T = derived from GPS
+long depress-repress before YS pressure function
+P_start=100 kPa
+
+
+
+
