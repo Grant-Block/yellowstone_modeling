@@ -1,0 +1,12 @@
+Source dim = 0.5*13 km, 1.0*27.5 km 
+Source depth = 5.0 
+Elastic half space
+Smaller domain size (200x200x100) km
+dP/dt= derived from GPS (max 83 kPa/yr), NO SMOOTHING ON P(t)
+T = derived from GPS
+long depress-repress before YS pressure function
+P_start=100 kPa
+
+
+
+
