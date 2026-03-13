@@ -7,6 +7,8 @@ import os
 from enum import Enum
 import pygmt
 from pathlib import Path
+from datetime import datetime as dt
+import time
 
 # Helper direction Enum
 class Direction(Enum):
@@ -35,7 +37,7 @@ class ReadGPS:
 
     def read_data(self):
 
-        df = pd.read_csv(self.path, delim_whitespace=True)
+        df = pd.read_csv(self.path, sep='\s+')
 
         # get name of station
         self.name = df['site'][0]
@@ -292,7 +294,7 @@ def calc_subset_vel_mean(station_list, dir=Direction.UP, write_individual_file=F
 # Also takes optional list of bounds [long_min, long_max, lat_min, lat_max] (bounds, deg) and boolean to plot state lines (statelines).
 def make_location_map(station_list, source_dim=None, source_center=None, source_angle=None, CR_dim=None, CR_center=None, CR_angle=None,
                       inner_CR_dim=None, inner_CR_center=None, inner_CR_angle=None, caldera_file=None, add_caldera_file=None, fault_file=None, 
-                      eq_file=None, bounds=None, statelines=False, plot_stations=False, in_stations=[], out_stations=[]):
+                      eq_file=None, bounds=None, statelines=False, plot_stations=False, in_stations=[], out_stations=[], plot_names=False, plot_domes=False):
 
    # Find the max and min longitude and latitude in our stations
     data_min_lat = np.inf
@@ -311,7 +313,10 @@ def make_location_map(station_list, source_dim=None, source_center=None, source_
 
     # setup for PyGMT
     topo_data = '@earth_relief_15s' #15 arc second global relief (SRTM15+V2.1)
+    
     pygmt.makecpt(cmap='topo',series='-8000/8000/1000',continuous=True)
+    # pygmt.makecpt(cmap='nighttime',series='-8000/8000/1000',continuous=True)
+
 
     # set plot bounds, if none are provided then set them to be +/- 0.5 degrees from the max/min longitude and latitude
     if bounds == None:
@@ -327,8 +332,8 @@ def make_location_map(station_list, source_dim=None, source_center=None, source_
     fig = pygmt.Figure()
 
     proj = 'M4i'
-    with pygmt.config(FONT="20p"):
-        fig.grdimage(grid=topo_data, shading=True, region=region,projection=proj, frame=True)
+    with pygmt.config(FONT="14"):
+        fig.grdimage(grid=topo_data, shading=True, region=region,projection=proj, frame=True, transparency=40)
         if statelines: # plot state lines if requested
             fig.coast(region=region,projection=proj, frame=True, water="lightblue", rivers="lightblue", borders=["2/0.5p,black"])
         else:
@@ -346,7 +351,9 @@ def make_location_map(station_list, source_dim=None, source_center=None, source_
         eq_lat = eq_df['latitude']
         eq_long = eq_df['longitude']
 
-        fig.plot(x=eq_long, y=eq_lat,color="slateblue2", style="c0.1c", pen='black')
+        # fig.plot(x=eq_long, y=eq_lat,color="slateblue2", style="c0.1c", pen='black', transparency=60)
+        fig.plot(x=eq_long, y=eq_lat,color="gray35", style="c0.1c", pen='black', transparency=60)
+
 
     # Plot faults if file is provided
     if fault_file != None:
@@ -377,6 +384,11 @@ def make_location_map(station_list, source_dim=None, source_center=None, source_
     if inner_CR_dim != None:
         fig.plot(x=inner_CR_center[0], y=inner_CR_center[1], style="e"+str(inner_CR_angle)+"/"+str(inner_CR_dim[0])+"/"+str(inner_CR_dim[1]), pen="3p,maroon,-.")
     
+    # plot resurgent domes
+    if plot_domes:
+        fig.plot(x=[-110.375, -110.8], y=[44.65, 44.48], color="darkblue", style="a0.4c", pen='1p,white') # resurgent dome centers estimated from Fig. 1 in 
+                                                                                                       # Delgado and Grandin 2021
+
     # Plot stations
     if plot_stations:
         lat = []
@@ -403,16 +415,50 @@ def make_location_map(station_list, source_dim=None, source_center=None, source_
                 name_out.append(station.name)
 
         # plot normal stations
-        fig.plot(x=long, y=lat,color="gray", style="c0.35c", pen='black')
+        fig.plot(x=long, y=lat,color="gray", style="c0.35c", pen='1p,black')
         # fig.text(text=name, x=long, y=np.asarray(lat)+0.06, font="8p,Helvetica-Bold", fill="white", transparency=30) # optional label for stations we're not using
 
         # plot in stations
-        fig.plot(x=long_in, y=lat_in,color="purple1", style="s0.35c", pen='black')
+        fig.plot(x=long_in, y=lat_in,color="purple1", style="s0.5c", pen='1p,black')
         # fig.text(text=name_in, x=long_in, y=np.asarray(lat_in)+0.06, font="8p,Helvetica-Bold", fill="white", transparency=30)
 
         # plot out stations
-        fig.plot(x=long_out, y=lat_out,color="darkslategray2", style="s0.35c", pen='black')
+        # fig.plot(x=long_out, y=lat_out,color="darkslategray2", style="s0.35c", pen='black')
+        fig.plot(x=long_out, y=lat_out,color="royalblue", style="t0.5c", pen='1p,black')
+
         # fig.text(text=name_out, x=long_out, y=np.asarray(lat_out)+0.06, font="8p,Helvetica-Bold", fill="white", transparency=30)
+
+             # plot the text boxes separately so they can be moved around
+    if plot_names:
+        for i in range(len(name)):
+            station_name = name[i]
+            station_long = long[i]
+            station_lat = lat[i]
+            if station_name == 'P718':
+                fig.text(text=station_name, x=station_long-0.09, y=station_lat+0.07, font="12p,Helvetica-Bold", fill="white", transparency=30)
+            else:
+                fig.text(text=station_name, x=station_long, y=station_lat+0.07, font="12p,Helvetica-Bold", fill="white", transparency=30)
+
+        for i in range(len(name_in)):
+            station_name = name_in[i]
+            station_long = long_in[i]
+            station_lat = lat_in[i]
+
+            if station_name == 'LKWY' or station_name == 'P801' or station_name == 'P709':
+                fig.text(text=station_name, x=station_long, y=station_lat-0.07, font="12p,Helvetica-Bold", fill="white", transparency=30)
+            else:
+                fig.text(text=station_name, x=station_long, y=station_lat+0.07, font="12p,Helvetica-Bold", fill="white", transparency=30)
+
+        for i in range(len(name_out)):
+            station_name = name_out[i]
+            station_long = long_out[i]
+            station_lat = lat_out[i]
+            if station_name == 'P714':
+                fig.text(text=station_name, x=station_long+0.2, y=station_lat, font="12p,Helvetica-Bold", fill="white", transparency=30)
+            elif station_name == 'MAWY':
+                fig.text(text=station_name, x=station_long, y=station_lat+0.07, font="12p,Helvetica-Bold", fill="white", transparency=30)
+            else:
+                fig.text(text=station_name, x=station_long, y=station_lat+0.07, font="12p,Helvetica-Bold", fill="white", transparency=30)
 
 
     # save fig and show
@@ -429,7 +475,8 @@ def make_location_map(station_list, source_dim=None, source_center=None, source_
 # depth.
 def make_vs_map(seismic_file, depth=10, source_dim=None, source_center=None, source_angle=None, CR_dim=None, CR_center=None, CR_angle=None,
                       inner_CR_dim=None, inner_CR_center=None, inner_CR_angle=None, caldera_file=None, add_caldera_file=None, bounds=None, 
-                      ref=None, plot_stations=False, station_list=None, in_stations=[], out_stations=[], other_stations=[], plot_profiles=False):
+                      ref=None, plot_stations=False, station_list=None, in_stations=[], out_stations=[], other_stations=[], plot_profiles=False,
+                      profile_center=None):
     
     
     # Read the data from the tomography file
@@ -444,6 +491,7 @@ def make_vs_map(seismic_file, depth=10, source_dim=None, source_center=None, sou
         if ref == -1: # if ref is -1, then average all vs at the depth and use that as the reference
             ref = np.mean(vs_val)
         vs_val_ref = 100*(vs_val-ref)/ref # in percent
+        print(ref)
 
 
     # If no bounds are provided then set the bounds to the max and min of the vs data.
@@ -484,7 +532,7 @@ def make_vs_map(seismic_file, depth=10, source_dim=None, source_center=None, sou
 
     # Plot source if requested
     if source_dim != None:
-        fig.plot(x=source_center[0], y=source_center[1], style="e"+str(source_angle)+"/"+str(source_dim[0])+"/"+str(source_dim[1]), pen="4p,white")
+        fig.plot(x=source_center[0], y=source_center[1], style="e"+str(source_angle)+"/"+str(source_dim[0])+"/"+str(source_dim[1]), pen="4p,white,4_2:2p")
 
 
     # Plot CR if requested
@@ -496,15 +544,15 @@ def make_vs_map(seismic_file, depth=10, source_dim=None, source_center=None, sou
         fig.plot(x=inner_CR_center[0], y=inner_CR_center[1], style="e"+str(inner_CR_angle)+"/"+str(inner_CR_dim[0])+"/"+str(inner_CR_dim[1]), pen="2p,black,-.")
 
     # plot profiles if requested
-    if plot_profiles:
+    if plot_profiles and profile_center != None:
 
         # make YY' line at source angle
         r = 1
-        x_xprime = r*np.cos(source_angle)+source_center[0]
-        y_xprime = r*np.sin(source_angle)+source_center[1]
+        x_xprime = r*np.cos(source_angle)+profile_center[0]
+        y_xprime = r*np.sin(source_angle)+profile_center[1]
 
-        x_x = source_center[0]-r*np.cos(source_angle)
-        y_x = source_center[1]-r*np.sin(source_angle)
+        x_x = profile_center[0]-r*np.cos(source_angle)
+        y_x = profile_center[1]-r*np.sin(source_angle)
 
         fig.plot(x=[x_x, x_xprime], y=(y_x, y_xprime), pen="2p,black")
         fig.text(x=x_x-0.04, y=y_x-0.01, text='Y', font="12p,Helvetica-Bold")
@@ -512,11 +560,11 @@ def make_vs_map(seismic_file, depth=10, source_dim=None, source_center=None, sou
 
         # make XX'
         r=0.4
-        x_yprime = r*np.cos(source_angle-(np.pi/2.))+source_center[0]+0.15
-        y_yprime = r*np.sin(source_angle-(np.pi/2.))+source_center[1]
+        x_yprime = r*np.cos(source_angle-(np.pi/2.))+profile_center[0]+0.15
+        y_yprime = r*np.sin(source_angle-(np.pi/2.))+profile_center[1]
 
-        x_y = source_center[0]-r*np.cos(source_angle-(np.pi/2.))-0.15
-        y_y = source_center[1]-r*np.sin(source_angle-(np.pi/2.))
+        x_y = profile_center[0]-r*np.cos(source_angle-(np.pi/2.))-0.15
+        y_y = profile_center[1]-r*np.sin(source_angle-(np.pi/2.))
 
         fig.plot(x=[x_y, x_yprime], y=(y_y, y_yprime), pen="2p,black")
         fig.text(x=x_y-0.02, y=y_y+0.04, text='X', font="12p,Helvetica-Bold")
@@ -553,15 +601,15 @@ def make_vs_map(seismic_file, depth=10, source_dim=None, source_center=None, sou
                 long_other.append(station.long)
 
         # plot in stations
-        fig.plot(x=long_in, y=lat_in,color="purple1", style="s0.35c", pen='1.5,black')
+        fig.plot(x=long_in, y=lat_in,color="black", style="s0.35c", pen='1.5,black')
         # fig.text(text=name_in, x=long_in, y=np.asarray(lat_in)+0.06, font="8p,Helvetica-Bold", fill="white", transparency=30)
 
         # plot out stations
-        fig.plot(x=long_out, y=lat_out,color="darkslategray2", style="s0.35c", pen='1.5,black')
+        fig.plot(x=long_out, y=lat_out,color="black", style="t0.5c", pen='black')
         # fig.text(text=name_out, x=long_out, y=np.asarray(lat_out)+0.06, font="8p,Helvetica-Bold", fill="white", transparency=30)
 
         # plot other stations
-        fig.plot(x=long_other, y=lat_other,color="gray", style="c0.35c", pen='1.5,black')
+        fig.plot(x=long_other, y=lat_other,color="black", style="c0.35c", pen='1.5,black')
 
 
     # save fig and show
@@ -617,7 +665,7 @@ def plot_GPS_vert(station_list, time_span, in_stations=[], out_stations=[], plot
     fig = pygmt.Figure()
     proj = 'M4i'
     with pygmt.config(FONT="20p"): #set fontsize for the longitude and latitude markers
-        fig.grdimage(grid=topo_data, shading=True, region=region,projection=proj, frame=True)
+        fig.grdimage(grid=topo_data, shading=True, region=region,projection=proj, frame=True, transparency=40)
         fig.coast(region=region,projection=proj, frame=True, water="lightblue", rivers="lightblue")
 
     # plot the CR if it's provided
@@ -740,25 +788,25 @@ def plot_GPS_vert(station_list, time_span, in_stations=[], out_stations=[], plot
     )
 
     # plot normal stations
-    fig.plot(x=long, y=lat,color="gray", style="c0.4c", pen='black') # plot station location
+    fig.plot(x=long, y=lat,color="gray", style="c0.6c", pen='black') # plot station location
     fig.velo(data=vh_df, line=True, pen='1.0p,black', spec="e0.5/0.39+f0", vector="0.5c+p5p+e+gblack") # plot arrow
 
     if len(long_nodata) > 0:
-        fig.plot(x=long_nodata, y=lat_nodata,color="black", style="c0.4c", pen='black') 
+        fig.plot(x=long_nodata, y=lat_nodata,color="black", style="c0.6c", pen='black') 
     
     # plot in stations
-    fig.plot(x=long_in, y=lat_in,color="purple", style="s0.4c", pen='black')
+    fig.plot(x=long_in, y=lat_in,color="purple", style="s0.6c", pen='black')
     fig.velo(data=vh_in_df, line=True, pen='1.0p,black', spec="e0.5/0.39+f0", vector="0.5c+p5p+e+gblack")
 
     if len(long_in_nodata) > 0:
-        fig.plot(x=long_in_nodata, y=lat_in_nodata,color="black", style="s0.4c", pen='1p,purple')
+        fig.plot(x=long_in_nodata, y=lat_in_nodata,color="black", style="s0.6c", pen='1p,purple')
 
     # plot out stations
-    fig.plot(x=long_out, y=lat_out,color="darkslategray2", style="s0.4c", pen='black')
+    fig.plot(x=long_out, y=lat_out,color="royalblue", style="t0.7c", pen='black')
     fig.velo(data=vh_out_df, line=True, pen='1.0p,black', spec="e0.5/0.39+f0", vector="0.5c+p5p+e+gblack")
 
     if len(long_out_nodata) > 0:
-        fig.plot(x=long_out_nodata, y=lat_out_nodata,color="black", style="s0.4c", pen='1p,darkslategray2')
+        fig.plot(x=long_out_nodata, y=lat_out_nodata,color="black", style="t0.7c", pen='1p,royalblue')
 
     # plot scale arrow
     fig.velo(data=vh_scale_df, line=True, pen='1.0p,black', spec="e0.5/0.39+f0", vector="0.5c+p5p+e+gblack")
@@ -868,7 +916,8 @@ def plot_GPS_horiz(station_list, time_span, in_stations=[], out_stations=[], ref
     fig = pygmt.Figure()
     proj = 'M4i'
     with pygmt.config(FONT="20p"): #set fontsize for the longitude and latitude markers
-        fig.grdimage(grid=topo_data, shading=True, region=region,projection=proj, frame=True)
+        # fig.grdimage(grid=topo_data, shading=True, region=region,projection=proj, frame=True)
+        fig.grdimage(grid=topo_data, shading=True, region=region,projection=proj, frame=True, transparency=40)
         fig.coast(region=region,projection=proj, frame=True, water="lightblue", rivers="lightblue")
 
     # plot the CR if it's provided
@@ -1041,11 +1090,12 @@ def plot_GPS_horiz(station_list, time_span, in_stations=[], out_stations=[], ref
         fig.plot(x=long_in_nodata, y=lat_in_nodata,color="black", style="s0.4c", pen='1p,purple')
 
     # plot out stations
-    fig.plot(x=long_out, y=lat_out,color="darkslategray2", style="s0.4c", pen='black')
+    # fig.plot(x=long_out, y=lat_out,color="darkslategray2", style="s0.4c", pen='black')
+    fig.plot(x=long_out, y=lat_out,color="royalblue", style="t0.5c", pen='black')
     fig.velo(data=vh_out_df, line=True, pen='1.0p,black', spec="e0.5/0.39+f0", vector="0.5c+p5p+e+gblack")
 
     if len(long_out_nodata) > 0:
-        fig.plot(x=long_out_nodata, y=lat_out_nodata,color="black", style="s0.4c", pen='1p,darkslategray2')
+        fig.plot(x=long_out_nodata, y=lat_out_nodata,color="black", style="t0.5c", pen='1p,royalblue')
 
     # plot scale arrow
     fig.velo(data=vh_scale_df, line=True, pen='1.0p,black', spec="e0.5/0.39+f0", vector="0.5c+p5p+e+gblack")
@@ -1313,7 +1363,7 @@ def plot_all_stations_vel(station_list, subplot_geometry, dir=Direction.UP, disp
 # a tuple containing start and end times of the slope in the velocity function used to scale with pressure (time_scale, yrs), 
 # a background pressure (P0, kPa, default 100).
 # The function will write a .timedb file for PyLith and plot the generated pressure function
-def make_center_mean_timedb(in_station_subset_list, dpdt_max, run_name, dir=Direction.UP, dt=0.005, time_scale=[2003, 2006], P0=100):
+def make_center_mean_timedb(in_station_subset_list, dpdt_max, run_name, dir=Direction.UP, dt=0.005, time_scale=[2002.3, 2005.85], P0=100, second_source_window=None):
 
     # get mean velocity function
     mean_time, mean_vel = calc_subset_vel_mean(in_station_subset_list, dir=dir)
@@ -1323,11 +1373,11 @@ def make_center_mean_timedb(in_station_subset_list, dpdt_max, run_name, dir=Dire
     smoothed_vel = []
     smoothed_times = []
 
-    step = 1 # step in years
-    window = 3  # window size in years
+    # step = 1 # step in years
+    # window = 3  # window size in years
 
-    # step = 0.5 # step in years
-    # window = 1  # window size in years
+    step = 0.5 # step in years
+    window = 1  # window size in years
 
     for t in np.arange(mean_time[0]+(window/2), mean_time[len(mean_time)-1]-(window/2)+step, step):
 
@@ -1343,10 +1393,9 @@ def make_center_mean_timedb(in_station_subset_list, dpdt_max, run_name, dir=Dire
         smoothed_times.append(time_avg/(len(mean_time[t_avg_idx])))
         smoothed_vel.append(comp_avg/(len(mean_vel[t_avg_idx])))
 
-    # Smoothing of <V>^inner is turned off when these lines are un-commented
+    # uncomment to turn off smoothing
     smoothed_vel = mean_vel
     smoothed_times = mean_time
-    #############################################
 
     # scale smoothed velocity using dp/dt
     m_idx1 = np.argmin(np.abs(np.asarray(smoothed_times)-time_scale[1]))
@@ -1362,11 +1411,32 @@ def make_center_mean_timedb(in_station_subset_list, dpdt_max, run_name, dir=Dire
     interp_times = interp_times_full[interp_times_full >= 2002.6]
     shifted_pressure_interp = shifted_pressure_interp_full[interp_times_full >= 2002.6]
 
+    # if there's a second source generate its pressures
+    if second_source_window != None:
+
+
+        pressure_scale = 1.0
+        
+        time_cut = (interp_times >= second_source_window[0]) & (interp_times <= second_source_window[1])
+
+        second_source_times = interp_times[time_cut]
+        second_source_pressures = -pressure_scale*shifted_pressure_interp[time_cut]
+
+
+        # upper pressure must also be modified by a factor of 1/(1-R)
+        # shifted_pressure_interp *= (1./(1-pressure_scale))
+
+
     # calculate initial depressurization step used before the main pressure function
     start_time = 1986
     depress_time = interp_times[0]-start_time # 1986-2002.xx, from Dzurisin et al. Figure 19
     depress_dpdt = -dpdt_max/10 # set the depressurization dpdt to be a tenth the max dpdt
+    # if second_source_window != None:
+    #     depress_dpdt *= (1./(1-pressure_scale))
     repress_dpdt = (shifted_pressure_interp[0]-(depress_dpdt*depress_time*0.9))/(depress_time*0.1) # slope to rise back to the initial derived pressure
+
+    # print(depress_dpdt, repress_dpdt)
+    # print(interp_times[0], depress_time)
 
     depress_times_array = np.arange(start_time, interp_times[0], dt)
     depress_pressures = []
@@ -1404,6 +1474,21 @@ def make_center_mean_timedb(in_station_subset_list, dpdt_max, run_name, dir=Dire
         f.write(str(round(final_times[i], 5))+" "+str(round(1+shifted_pressure_interp[len(shifted_pressure_interp)-1]/P0, 5)) + "\n") # write ending pressures
     f.close()
 
+    # write the second source time db file if specified
+    write_second_source_times = np.arange(0, 100+shifted_interp_times[len(shifted_interp_times)-1]+2*dt,dt)
+    if second_source_window != None:
+        file_name = run_name + "second_source.timedb"
+
+        f = open(file_name, "w")
+        f.write("#TIME HISTORY ascii\nTimeHistory {\nnum-points = " + str(len(spinup_times)+len(shifted_interp_times)+len(final_times)) + "\ntime-units = year\n}\n")
+        j = 0
+        for i in range(len(write_second_source_times)):
+            if write_second_source_times[i] <= second_source_window[0]-start_time+500 or write_second_source_times[i] >= second_source_window[1]-start_time+500:
+                f.write(str(round(write_second_source_times[i], 5))+" "+str(round(1, 5))+"\n")
+            else:
+                f.write(str(round(write_second_source_times[i], 5)) + " " + str(round(1+second_source_pressures[j]/P0, 5)) + "\n") # write pressure function
+                j+=1
+
     # plot smoothed velocity and derived pressure function
     fig, ax1 = plt.subplots()
 
@@ -1414,20 +1499,38 @@ def make_center_mean_timedb(in_station_subset_list, dpdt_max, run_name, dir=Dire
     ax1.grid()
     l1, = ax1.plot(mean_time, np.asarray(mean_vel)*1e3, lw=20, color="indigo", alpha=0.6, label=r"$\langle V(t)\rangle^{inner}$")
 
-   
+
     ax2 = ax1.twinx()
+    # l3, = ax2.plot(pressure_times[plot_idx]+interp_times[0]-500, pressure_values[plot_idx]*P0, color="red", lw=10, linestyle="dashed", label=r"generic $P(t)$")
 
     ax2.set_ylabel("P (kPa)", fontsize=28)
     ax2.tick_params(axis='y', labelsize=30)
     ax2.plot(depress_times_array, np.asarray(depress_pressures)+P0, lw=10, color="black")
     ax2.plot(np.arange(depress_times_array[0]-10, depress_times_array[0], 1), np.ones(10)*P0, lw=10, color="black", linestyle='dashed')
     l2, = ax2.plot(interp_times, shifted_pressure_interp+P0, lw=10, color="black", label=r"$P(t)$")
+    if second_source_window != None:
+        ax2.plot(second_source_times, second_source_pressures+P0, lw=10, color="red", label=r"$Second Source P(t)$")
+
+    # Function modified from https://stackoverflow.com/questions/64087309/how-to-set-the-axis-of-two-y-axis-plots-using-the-same-starting-point-instead-of
+    def alignZero(ax1, ax2):
+        y1Min, y1Max = ax1.get_ylim()
+        y2Min, y2Max = ax2.get_ylim()
+
+        ratio1 = -y1Min / (y1Max - y1Min)
+        ratio2 = -y2Min / (y2Max - y2Min)
+        if ratio2 < ratio1:
+            y2newMin = y1Min * y2Max / y1Max
+            ax2.set_ylim(y2newMin+P0, y2Max+P0)
+        elif ratio2 > ratio1:
+            y2newMax = y2Min * y1Max / y1Min
+            ax2.set_ylim(y2Min+P0, y2newMax+P0)
+        
+    # alignZero(ax1, ax2)
 
 
     plt.legend((l1, l2), (l1.get_label(), l2.get_label()), fontsize=30)
 
     plt.show()
-
 
 # Function to take multiple generated timedb files and plot them together, comparing to the data time series
 # Takes in timedb_list: list of filename strings, dpdt_max_list: list of dP/dt max values (floats), in_station_subset_list: list of inner ReadGPS objects, 
@@ -1713,6 +1816,202 @@ def write_data_file(x, y, name):
         f.write(str(round(x[i], 3)) + "," + str(round(y[i], 5)) + "\n")
     f.close()
 
+# Function to plot precipitation data and station group. Calculates their CC.
+def plot_precip_data(precip_data_list, GPS_group, labels, colors, linestyles):
+
+    # set up plot
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+
+    ax1.set_xlabel("Time (yrs)", fontsize=30)
+    ax1.set_ylabel("Montly Mean Precipitation (cm)", fontsize=30)
+    ax1.tick_params(axis='x', labelsize=30)
+    ax1.tick_params(axis='y', labelsize=30)
+    ax2.tick_params(axis='y', labelsize=30)
+    ax1.grid()
+    ax2.set_ylabel("Vertical Velocity (mm/yr)", fontsize=30)
+
+    line_list = []
+
+    # read precip data
+    for precip_data, label, c, ls in zip(precip_data_list, labels, colors, linestyles):
+
+        df = pd.read_csv(precip_data).dropna(subset=["DailyPrecipitation"], ignore_index=True)
+        df = df[df.DailyPrecipitation != '*']
+
+        date = np.asarray(df['DATE'])
+        dec_date = np.zeros(len(date))
+        daily_precip = np.asarray(df['DailyPrecipitation'], dtype=float)
+        for i in range(len(dec_date)):
+            dec_date[i] = toYearFraction(dt.strptime(date[i], "%Y-%m-%dT%H:%M:%S"))
+
+        print(len(daily_precip))
+
+        # get monthly precip averages with a moving window
+        window = 1/12
+        step = window/2 # step size of half a month
+
+        l = dec_date[0]
+        r = l+window
+        month_bins = []
+        precip_mean = []
+        while(r <= dec_date[len(dec_date)-1]):
+
+            l_idx = (np.abs(dec_date - l)).argmin()
+            r_idx = (np.abs(dec_date - r)).argmin()
+
+            month_bins.append((dec_date[l_idx]+dec_date[r_idx])/2)
+            precip_mean.append(np.mean(daily_precip[l_idx:r_idx]))
+
+            l += step
+            r += step
+
+
+        l, = ax1.plot(month_bins, precip_mean, lw=3, color=c, label=label, linestyle=ls)
+        line_list.append(l)
+
+    # plot station
+    # smoothed_times_vel, vel = GPS_group[0].calculate_velocity(dir=Direction.UP)
+    smoothed_times_vel, vel = calc_subset_vel_mean(GPS_group, write_individual_file=True)
+
+    l, = ax2.plot(smoothed_times_vel, vel*1e3, lw=7, c="gray", label="RG Stations")
+    line_list.append(l)
+    full_labels = labels
+    full_labels.append("RG Stations")
+
+    plt.legend(line_list, full_labels, fontsize=25)
+    plt.show()
+
+        
+# Function to find 2-source dP/dt's using Mogi model approximations in an elastic half space
+def dual_mogi_source(volume_ratio=1, dpdt_ratio=-1, lower_source_depth=-25e3, upper_source_dpdt=81.76e3, lower_shift=0.0, plot=False):
+
+    # set parameters for Mogi sources
+    upper_source_volume = 1.12312e12 # m^3, from source ellipsoidal volume
+    lower_source_volume = upper_source_volume*volume_ratio
+
+    upper_source_depth = 4000 # m
+
+    lower_source_dpdt = upper_source_dpdt*dpdt_ratio
+
+    mu = 2.734e10 # Pa, elastic half space shear modulus
+
+    # Make r and Mogi arrays
+    r = np.arange(-75e3, 75e3, 10)
+
+    # in m/yr
+    upper_vel = (0.75*upper_source_dpdt*upper_source_volume/mu)*(upper_source_depth/(r**2+upper_source_depth**2)**(3/2))
+    lower_vel = (0.75*lower_source_dpdt*lower_source_volume/mu)*(lower_source_depth/((r-lower_shift)**2+lower_source_depth**2)**(3/2))
+
+    
+
+    if plot:
+
+        print("V(r=0 km) = "+str((upper_vel[r==0]+lower_vel[r==0])*1e3))
+        print("V(r=-25 km) = "+str((upper_vel[r==-25e3]+lower_vel[r==-25e3])*1e3))
+
+        # plot
+        plt.xlabel("r (km)", fontsize=30)
+        plt.ylabel("Velocity (mm/yr)", fontsize=30)
+        plt.xticks(fontsize=25)
+        plt.yticks(fontsize=25)
+        plt.grid()
+
+        plt.plot(r/1e3, (upper_vel+lower_vel)*1e3, lw=5, label="Upper+Lower Source")
+        plt.plot(r/1e3, upper_vel*1e3, lw=4, ls='dashed', c='gray', label="Upper Source")
+        plt.plot(r/1e3, lower_vel*1e3, lw=4, ls='dotted', c='gray', label="Lower Source")
+
+        plt.legend(fontsize=25)
+
+        plt.show()
+
+    return r, upper_vel, lower_vel
+
+# function to iterate over parameters to find best dual mogi fit for surface velocities
+def iterate_dual_mogi():
+
+    # best fitting parameters
+    V_inner_obs = 46 # mm/yr
+    ratio_obs = 5
+
+    # mogi parameters to iterate over
+    volume_ratio_list = np.arange(0.1, 3.1, 0.1)
+    dpdt_ratio_list = np.arange(-3.5, 0, 0.1)
+    lower_source_depth_list = np.arange(8e3, 40e3, 2e3) # m
+    upper_source_dpdt_list = np.arange(25e3, 120e3, 2e3) # Pa/yr
+
+    print(len(volume_ratio_list)*len(dpdt_ratio_list)*len(lower_source_depth_list)*len(upper_source_dpdt_list))
+
+    # loop over parameter space and save best fitting models
+    best_upper_vels = []
+    best_lower_vels = []
+    best_params = []
+    for volume_ratio in volume_ratio_list:
+        for dpdt_ratio in dpdt_ratio_list:
+            for lower_source_depth in lower_source_depth_list:
+                for upper_source_dpdt in upper_source_dpdt_list:
+
+                    r, upper_vel, lower_vel = dual_mogi_source(volume_ratio=volume_ratio, dpdt_ratio=dpdt_ratio, lower_source_depth=lower_source_depth, 
+                                                               upper_source_dpdt=upper_source_dpdt, lower_shift=-20e3)
+                    
+                    total_vel = (upper_vel+lower_vel)*1e3 # mm/yr
+                    
+                    central_vel = total_vel[r==0][0]
+                    vel_ratio = -(central_vel/total_vel[r==-20e3][0])
+
+                
+                    # check if the model fits
+                    if np.abs(central_vel-V_inner_obs) < 7 and np.abs(vel_ratio-ratio_obs) < 0.1:
+                        print("here")
+                        best_upper_vels.append(upper_vel*1e3)
+                        best_lower_vels.append(lower_vel*1e3)
+
+                        best_params.append((volume_ratio, dpdt_ratio, lower_source_depth, upper_source_dpdt))
+
+    print(len(best_upper_vels))
+
+    for upper_vel, lower_vel, params in zip(best_upper_vels, best_lower_vels, best_params):
+
+        print("Volume ratio:", round(params[0], 2), "dp/dt ratio:", round(params[1], 2), "Lower source depth:", round(params[2]/1e3, 2), 
+              "Upper source dp/dt:", round(params[3]/1e3, 2))
+        
+        plt.xlabel("r (km)", fontsize=30)
+        plt.ylabel("Velocity (mm/yr)", fontsize=30)
+        plt.xticks(fontsize=25)
+        plt.yticks(fontsize=25)
+        plt.grid()
+
+        plt.plot(r/1e3, upper_vel+lower_vel, lw=5, label="Upper+Lower Source")
+        plt.plot(r/1e3, upper_vel, lw=4, ls='dashed', c='gray', label="Upper Source")
+        plt.plot(r/1e3, lower_vel, lw=4, ls='dotted', c='gray', label="Lower Source")
+
+        plt.text(-80, 45, r"$r_v$="+str(round(params[0], 2))+", dp/dt ratio="+str(round(params[1], 2))+r", $d_{ls}$="+str(round(params[2]/1e3, 2))+
+                 r" km, $dp/dt_{us}$="+str(round(params[3]/1e3, 2))+" kPa/yr", fontsize=15)
+
+        plt.legend(fontsize=25)
+
+        plt.show()
+
+        
+
+# function from https://stackoverflow.com/questions/6451655/how-to-convert-python-datetime-dates-to-decimal-float-years
+def toYearFraction(date):
+
+    def sinceEpoch(date): # returns seconds since epoch
+        return time.mktime(date.timetuple())
+    s = sinceEpoch
+
+    year = date.year
+    startOfThisYear = dt(year=year, month=1, day=1)
+    startOfNextYear = dt(year=year+1, month=1, day=1)
+
+    yearElapsed = s(date) - s(startOfThisYear)
+    yearDuration = s(startOfNextYear) - s(startOfThisYear)
+    fraction = yearElapsed/yearDuration
+
+    return date.year + fraction
+
+
 
 ############################################################################################################################
 # Plotting function calls
@@ -1725,19 +2024,31 @@ regional_group = ['P361','P676', 'P456', 'P712', 'P460', 'P457', 'P461', 'P721',
 long_to_km = 66.63235041229169
 lat_to_km = 97.15186510942182
 
-# function call to make figure 1a
+# function calls to make figure 1
 # aspect_ratio_scaling = 0.1
 # make_location_map(get_data_list(), source_dim=(13*0.5*aspect_ratio_scaling, 27.5*aspect_ratio_scaling), source_center=(-110.63, 44.54), source_angle=360-58, 
 #                   CR_dim=(32*aspect_ratio_scaling, 55*aspect_ratio_scaling), CR_center=(-110.63-5/long_to_km, 44.54-0.75/lat_to_km), CR_angle=360-58, 
 #                   inner_CR_dim=(22*aspect_ratio_scaling, 40*aspect_ratio_scaling), inner_CR_center=(-110.63, 44.54), inner_CR_angle=360-58, 
 #                   caldera_file="GMT_data/YScalderaL.txt", add_caldera_file="GMT_data/YScalderas_hrmf.txt", fault_file=None, eq_file="GMT_data/ys_eq.csv", 
 #                   bounds=[-112.4, -112.4+3.074377, 43.4, 43.4+2.2585], plot_stations=True, in_stations=in_group, 
-#                   out_stations=out_group)
+#                   out_stations=out_group, plot_names=False)
+
+# make_location_map(get_data_list(), source_dim=(13*0.5*aspect_ratio_scaling, 27.5*aspect_ratio_scaling), source_center=(-110.63, 44.54), source_angle=360-58, 
+#                   caldera_file="GMT_data/YScalderaL.txt", add_caldera_file="GMT_data/YScalderas_hrmf.txt", fault_file=None, eq_file="GMT_data/ys_eq.csv", 
+#                   bounds=[-112.4, -112.4+3.074377, 43.4, 43.4+2.2585], plot_stations=True, in_stations=in_group, 
+#                   out_stations=out_group, plot_names=False, plot_domes=True)
+
+# make_location_map(get_data_list(), 
+#                   CR_dim=(32*aspect_ratio_scaling, 55*aspect_ratio_scaling), CR_center=(-110.63-5/long_to_km, 44.54-0.75/lat_to_km), CR_angle=360-58, 
+#                   inner_CR_dim=(22*aspect_ratio_scaling, 40*aspect_ratio_scaling), inner_CR_center=(-110.63, 44.54), inner_CR_angle=360-58, 
+#                   caldera_file="GMT_data/YScalderaL.txt", add_caldera_file="GMT_data/YScalderas_hrmf.txt", fault_file=None, eq_file="GMT_data/ys_eq.csv", 
+#                   bounds=[-112.4, -112.4+3.074377, 43.4, 43.4+2.2585], plot_stations=True, in_stations=in_group, 
+#                   out_stations=out_group, plot_names=False)
 
 # function call to make the inset for Figure 1 a
 # make_location_map(get_data_list(), caldera_file="GMT_data/YScalderaL.txt", add_caldera_file="GMT_data/YScalderas2L.txt", bounds=[-117, -109, 41, 45.5], statelines=True)
 
-# function call to make figure 1b
+# function calls to make figure 2a-c
 # aspect_ratio_scaling = 0.132
 # make_vs_map("GMT_data/ys_vs3d_m10.dat", depth=5, source_dim=(13*0.5*aspect_ratio_scaling, 27.5*aspect_ratio_scaling), source_center=(-110.63, 44.54), 
 #             source_angle=360-58, CR_dim=(32*aspect_ratio_scaling, 55*aspect_ratio_scaling), CR_center=(-110.63-5/long_to_km, 44.54-0.75/lat_to_km), 
@@ -1747,32 +2058,64 @@ lat_to_km = 97.15186510942182
 #             bounds=[-111.8, -109.5, 43.8, 45.3], ref=-1, plot_stations=True, station_list=get_data_list(), 
 #             in_stations=in_group, out_stations=out_group,
 #             other_stations=['NRWY'],
-#             plot_profiles=True)
+#             plot_profiles=True, profile_center=(-110.63, 44.54))
 
-# function call to make figure 2 a-c
+# make_vs_map("GMT_data/ys_vs3d_m10.dat", depth=15, CR_dim=(32*aspect_ratio_scaling, 55*aspect_ratio_scaling), 
+#             CR_center=(-110.63-5/long_to_km, 44.54-0.75/lat_to_km), 
+#             CR_angle=360-58, inner_CR_dim=(22*aspect_ratio_scaling, 40*aspect_ratio_scaling), inner_CR_center=(-110.63, 44.54), inner_CR_angle=360-58,
+#             caldera_file="GMT_data/YScalderaL.txt", add_caldera_file="GMT_data/YScalderas_hrmf.txt", 
+#             # bounds=[-112.4, -112.4+3.074377, 43.4, 43.4+2.2585], ref=-1, plot_stations=True, station_list=get_data_list(), 
+#             bounds=[-111.8, -109.5, 43.8, 45.3], ref=-1, plot_stations=True, station_list=get_data_list(), 
+#             in_stations=in_group, out_stations=out_group,
+#             other_stations=['NRWY'],
+#             plot_profiles=False)
+
+# source_x_shift = 20*np.cos((360-58)*(np.pi/180))-5*np.sin((360-58)*(np.pi/180))
+# source_y_shift = 20*np.sin((360-58)*(np.pi/180))+5*np.cos((360-58)*(np.pi/180))
+# make_vs_map("GMT_data/ys_vs3d_m10.dat", depth=24, source_dim=(2.3**(1/3)*13*0.5*aspect_ratio_scaling, 2.3**(1/3)*27.5*aspect_ratio_scaling), 
+#             source_center=(-110.63-source_x_shift/long_to_km, 44.54-source_y_shift/lat_to_km), 
+#             source_angle=360-58, CR_dim=(32*aspect_ratio_scaling, 55*aspect_ratio_scaling), CR_center=(-110.63-5/long_to_km, 44.54-0.75/lat_to_km), 
+#             CR_angle=360-58,
+#             caldera_file="GMT_data/YScalderaL.txt", add_caldera_file="GMT_data/YScalderas_hrmf.txt", 
+#             # bounds=[-112.4, -112.4+3.074377, 43.4, 43.4+2.2585], ref=-1, plot_stations=True, station_list=get_data_list(), 
+#             bounds=[-111.8, -109.5, 43.8, 45.3], ref=-1, plot_stations=True, station_list=get_data_list(), 
+#             in_stations=in_group, out_stations=out_group,
+#             other_stations=['NRWY'],
+#             plot_profiles=True, profile_center=(-110.63, 44.54))
+
+# function call to make figure 3 a-c
 # plot_GPS_vert(get_data_list(), [2014, 2016], in_stations=in_group, out_stations=out_group, fault_file=None, bounds=[-111.8, -109.25, 43.92, 45.5], 
 #               CR_dim=None, CR_center=None, CR_angle=None, caldera_file="GMT_data/YScalderaL.txt", plot_names=False) 
 
-# function call to make figure A1
+# function call to make figure S2
 # plot_GPS_horiz(get_data_list(), [2014, 2016], in_stations=in_group, out_stations=out_group, fault_file=None, bounds=[-111.8, -109.25, 43.92, 45.5], 
-#                 CR_dim=None, CR_center=None, CR_angle=None, caldera_file="GMT_data/YScalderaL.txt", reference_station=-1, plot_names=True)
+#                 CR_dim=None, CR_center=None, CR_angle=None, caldera_file="GMT_data/YScalderaL.txt", reference_station=-1, plot_names=False)
 
-# Function calls to make figure A2
+# Function calls to make figure S1
 # plot_all_stations_vel(get_data_list(station_subset=in_group), (3, 2)) # in stations
 # plot_all_stations_vel(get_data_list(station_subset=['P711', 'NRWY', 'MAWY', 'P686', 'P714', 'P360']), (3, 2), disp_bounds=[-0.06, 0.06]) # out stations
 # plot_all_stations_vel(get_data_list(station_subset=regional_group), (5, 2), disp_bounds=[-0.06, 0.06]) # RG stations
 
 # function call to make pressure function
 # make_center_mean_timedb(get_data_list(station_subset=in_group), 23, "demo_run", dt=0.001)
+make_center_mean_timedb(get_data_list(station_subset=in_group), 43, "run218", dt=0.005, second_source_window=[2003.5, 2016])
 
-# function call to make Fig. 3c
+# function call to make Fig. S4e
 # plot_compare_timedbs(['run_demo_23kPa_unsmoothed.timedb', 'run_demo_13kPa_unsmoothed.timedb'], [23, 13], get_data_list(station_subset=in_group))
 
 # function call to get the distance of stations to the source center (used to calculated model inner and outer groups)
 # print(distance_to_stations(get_data_list(['LKWY']), (-110.63, 44.54)))
 
 # Function call to determine the inner and outer groups and make part of table B1
-calc_cross_correlations(get_data_list(['LKWY']), get_data_list(), time_window=[2004, 2016])
+# calc_cross_correlations(get_data_list(['LKWY']), get_data_list(), time_window=[2004, 2016])
 # Function call to calculate the regional group (CC > 0.2 with P361)
 # calc_cross_correlations(get_data_list(['P361']), get_data_list(), time_window=[2004, 2016])
+
+# Function call to make precip-RG plot S3
+# plot_precip_data(["GMT_data/YS_lake_precip.csv", "GMT_data/west_YS_precip.csv"], get_data_list(station_subset=regional_group), 
+#                  ["YS Lake Station"], ['blue'], ['solid'])
+
+# Function call to calculate the 2-source Mogi parameter sweep
+# dual_mogi_source(volume_ratio=0.5, dpdt_ratio=-2, lower_source_depth=25e3, upper_source_dpdt=40e3, lower_shift=-25e3, plot=True)
+# iterate_dual_mogi()
 
