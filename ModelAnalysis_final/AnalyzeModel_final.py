@@ -421,9 +421,10 @@ class Analysis:
     # of GPS stations, and the surface projection of the source and CR.
     def read_plot_groundsurf(self, time_step, mean_time_steps=None, parameter='vz', som_width=False, CR=False, CR_x=100, CR_y=None, CR_inner=None, envelope=None, source=False, 
                              second_source=None, source_disp=None, second_source_disp=None, CR_disp=None, inner_CR_disp=None, profile=False, x_lim=None, 
-                             y_lim=None, theta=None, save=False, in_points_list=None, out_points_list=None, plot_caldera=False, log_scale=True):
+                             y_lim=None, theta=None, save=False, in_points_list=None, out_points_list=None, station_files=None,
+                             plot_caldera=False, log_scale=True, vel_lim=None, contours=True):
 
-        #first need to get model time (or times if we're averaging)
+        #first need to get model time
         if mean_time_steps == None:
             model_time = self.get_timesteps(time_step)
         else:
@@ -433,8 +434,13 @@ class Analysis:
             model_time = np.asarray(model_time_list)
 
         #get the file path
-        path = "../../../../Yellowstone/"+str(self.model.path)+"/"+self.model.path[4:]+"-groundsurf.h5"
-        
+        if "Yellowstone" in self.model.model_name: #different parsing strategy for yellowstone models
+            path = "../../../Yellowstone/"+str(self.model.path)+"/"+self.model.path[4:]+"-groundsurf.h5"
+        elif self.model.tr == 0.1:
+            path = "../../"+str(self.model.path)+"/output/SMB_chamber_bot_50km-groundsurf-" + str(self.model.run_time)+"_01_yr_relax.h5"
+        else:
+            path = "../../"+str(self.model.path)+"/output/SMB_chamber_bot_50km-groundsurf-" + str(self.model.run_time)+"_"+str(int(self.model.tr))+"_yr_relax.h5" 
+
         #prepare lists for getting data from hdf5 files
         with h5py.File(path, "r") as f:
             group_geometry = f['geometry']
@@ -447,7 +453,6 @@ class Analysis:
             x = points[:][:,0]
             y = points[:][:,1]
             
-            # check if we're averaging multiple time steps
             if mean_time_steps == None:
                 disp_x = displacements[model_time][:][:,0]
                 disp_y = displacements[model_time][:][:,1]
@@ -474,8 +479,6 @@ class Analysis:
                     vel_y_list.append(velocities[mt][:][:,1])
                     vel_z_list.append(velocities[mt][:][:,2])
 
-
-           
             #get profile if needed
             if profile:
                 (x_prof, disp_x_prof, disp_y_prof, disp_z_prof, disp_r_prof, disp_theta_prof,
@@ -545,32 +548,37 @@ class Analysis:
                 # take the mean of the plot data
                 plot_data_mean = np.mean(plot_data, axis=0)
 
-            #interpolate on 2D grid
+            #interpolate
             grid_x, grid_y = np.mgrid[-self.mesh_width:self.mesh_width:1000j, -self.mesh_width:self.mesh_width:1000j]
             
             if mean_time_steps == None:
-                z = interpolate.griddata((x/1e3,y/1e3), plot_data, (grid_x/1e3, grid_y/1e3), method='cubic')
+                z = interpolate.griddata((x/1e3,y/1e3), plot_data, (grid_x/1e3, -grid_y/1e3), method='cubic')
             else:
-                z = interpolate.griddata((x/1e3,y/1e3), plot_data_mean, (grid_x/1e3, grid_y/1e3), method='cubic')
+                z = interpolate.griddata((x/1e3,y/1e3), plot_data_mean, (grid_x/1e3, -grid_y/1e3), method='cubic')
 
 
 
             #plot
             plt.figure()
+            #color_map = plt.cm.get_cmap('RdBu').reversed()
             color_map='seismic'
-
-            # check if we're plotting log scale or not
             if log_scale:
                 plt.imshow(z.T*conversion, extent=(-self.mesh_width/1e3,self.mesh_width/1e3,-self.mesh_width/1e3,self.mesh_width/1e3),
                             cmap=color_map, norm=matplotlib.colors.SymLogNorm(linthresh=0.5, linscale=1.0, vmin=-80, vmax=80))
             else:
                 from matplotlib import colors
-                divnorm=colors.TwoSlopeNorm(vmin=-10., vcenter=0., vmax=30)
+                if vel_lim == None:
+                    divnorm=colors.TwoSlopeNorm(vmin=-20., vcenter=0., vmax=60)
+                else: 
+                    divnorm=colors.TwoSlopeNorm(vmin=vel_lim[0], vcenter=0., vmax=vel_lim[1])
+
                 im = plt.imshow(z.T*conversion, extent=(-self.mesh_width/1e3,self.mesh_width/1e3,-self.mesh_width/1e3,self.mesh_width/1e3),
                             cmap=color_map, norm=divnorm)
-
-                ctr = plt.contour(z.T*conversion, [-5, 0, 5, 10, 20], origin='upper', colors=['black', 'black', 'black', 'black', 'black'],
-                                extent=(-self.mesh_width/1e3,self.mesh_width/1e3,-self.mesh_width/1e3,self.mesh_width/1e3))
+                # color_map = plt.cm.get_cmap('RdBu').reversed()
+                # levels = np.arange(-10, 35, 5)
+                if contours == True:
+                    ctr = plt.contour(z.T*conversion, [-10, -5, 0, 5, 10, 20, 30, 40, 50], origin='upper', colors=['black', 'black', 'black', 'black', 'black'],
+                                    extent=(-self.mesh_width/1e3,self.mesh_width/1e3,-self.mesh_width/1e3,self.mesh_width/1e3))
 
             plt.xlabel("X [km]", fontsize=40)
             plt.ylabel("Y [km]", fontsize=40)
@@ -580,22 +588,42 @@ class Analysis:
                 cbar = plt.colorbar()
             else:
                 cbar = plt.colorbar(im)
-                cbar.add_lines(ctr)
+                # cbar = plt.colorbar(im, orientation='horizontal')
+                if contours:
+                    cbar.add_lines(ctr)
             cbar.set_label(label="Velocity (mm/yr)", size=40)
             cbar.ax.tick_params(labelsize=30)
-            
-            # Plot points showing GPS stations if requested
+            # if in_points_list != None:
+            #     plt.plot(np.zeros(121), np.arange(-60, 61, 1)+self.y_off/1e3, linewidth=3.5, c="black", zorder=1)
             inner_color = 'indigo'
             outer_color = 'teal'
+            if station_files != None:
+                shift_time=1986
+                points_list = in_points_list+out_points_list
+                for station, point in zip(station_files, points_list):
+                    # get mean station velocity
+                    df = pd.read_csv(station)
+                    GPS_times = df['time[yrs]'].values
+                    GPS_vel = df['velocity[m/yr]'].values
+                    time_cut = (GPS_times >= mean_time_steps[0]-500+shift_time) & (GPS_times <= mean_time_steps[1]-500+shift_time) 
 
-            if in_points_list != None:
-                for point in in_points_list:
-                    plt.scatter(point[0]+self.x_off/1e3, point[1]+self.y_off/1e3, c=inner_color, marker='s', s=200, edgecolor='black', linewidths=2, zorder=2)
-            if out_points_list != None:
-                for point in out_points_list:
-                    plt.scatter(point[0]+self.x_off/1e3, point[1]+self.y_off/1e3, c=outer_color, marker='s', s=200, edgecolor='black', linewidths=2)
-            
-            # plot caldera outline if requested
+                    if len(GPS_vel[time_cut]) > 0:
+                        mean_vel =  np.mean(GPS_vel[time_cut])*1e3
+                        if station in ['WLWY.csv', 'LKWY.csv', 'P709.csv', 'HVWY.csv', 'P801.csv', 'OFW2.csv']:
+                            plt.scatter(point[0]+self.x_off/1e3, point[1]+self.y_off/1e3, c=mean_vel, marker='s', s=600, edgecolor='black', linewidths=4, zorder=10, 
+                                        cmap=color_map, norm=divnorm)
+                        else:
+                            plt.scatter(point[0]+self.x_off/1e3, point[1]+self.y_off/1e3, c=mean_vel, marker='^', s=600, edgecolor='black', linewidths=4, zorder=10, 
+                                        cmap=color_map, norm=divnorm)
+
+            else:
+                if in_points_list != None:
+                    for point in in_points_list:
+                        plt.scatter(point[0]+self.x_off/1e3, point[1]+self.y_off/1e3, c=inner_color, marker='s', s=600, edgecolor='black', linewidths=4, zorder=2)
+                if out_points_list != None:
+                    for point in out_points_list:
+                        plt.scatter(point[0]+self.x_off/1e3, point[1]+self.y_off/1e3, c=outer_color, marker='s', s=600, edgecolor='black', linewidths=4)
+                
             if plot_caldera:
                 df_caldera = pd.read_csv("shifted_caldera.csv", sep=',', header=None)
                 plt.plot(df_caldera[0]+self.x_off/1e3, df_caldera[1]+self.y_off/1e3, linewidth=3)
@@ -636,9 +664,9 @@ class Analysis:
                 if second_source != None:
                     second_source_x_points, second_source_y_points = get_CR_points(second_source[0], second_source[1])
                     if second_source_disp == None:
-                        plt.plot(second_source_x_points, second_source_y_points, c='black', linestyle='dashdot')
+                        plt.plot(second_source_x_points, second_source_y_points, c='black', linestyle='dashdot', linewidth=4.5)
                     else:
-                        plt.plot(second_source_x_points+second_source_disp[0], second_source_y_points+second_source_disp[1], c='black', linestyle='dashdot')
+                        plt.plot(second_source_x_points+second_source_disp[0], second_source_y_points+second_source_disp[1], c='black', linestyle='dashdot', linewidth=4.5)
             
             
             # set plot limits
@@ -691,13 +719,15 @@ class Analysis:
 
         # set up plot
         fig, ax = plt.subplots(1, 1, figsize=(17, 6))
-        ax.set_xlabel("Distance From Center of Source (km)", fontsize=40)
-        ax.set_ylabel("Velocity (mm/yr)", fontsize=40)
+        # fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+        ax.set_xlabel("Distance From Center of Source (km)", fontsize=50)
+        ax.set_ylabel("Velocity (mm/yr)", fontsize=50)
         ax.tick_params(axis='x', labelsize=50)
         ax.tick_params(axis='y', labelsize=50)
+        # plt.yscale('symlog')
         ax.grid()
 
-        # get profiles at every specified time
+
         profile_list = []
         for t in mean_times:
             model_time = self.get_timesteps(t)
@@ -705,7 +735,6 @@ class Analysis:
 
             profile_list.append(vel_z*self.ms_to_mmyr)
         
-        # get the mean profile
         mean_profile = np.mean(np.asarray(profile_list), axis=0)
 
         if theta == np.pi/2.:
@@ -715,7 +744,7 @@ class Analysis:
 
         # plot
 
-        ax.plot(x_0/1e3, mean_profile, linewidth=7, label=profile_legend, c='black')
+        ax.plot(x_0/1e3, mean_profile, linewidth=12, label=profile_legend, c='black')
 
         # if there are points to plot, iterate and plot them
         if plot_points != None:
@@ -727,23 +756,27 @@ class Analysis:
                 GPS_times = df['time[yrs]'].values
                 GPS_vel = df['velocity[m/yr]'].values
 
-                # get data times corresponding to model times
                 time_cut = (GPS_times >= mean_times[0]-500+shift_time) & (GPS_times <= mean_times[1]-500+shift_time)
                 GPS_mean_vel = np.mean(GPS_vel[time_cut])*1e3
 
                 if len(GPS_vel[time_cut]) > 0:
+                    # print(point, GPS_mean_vel, np.asarray([[min(GPS_vel[time_cut]*1e3)], [max(GPS_vel[time_cut]*1e3)]]))
                 
                     # plot point mean and range
                     if point in ['WLWY.csv', 'LKWY.csv', 'P709.csv', 'HVWY.csv', 'P801.csv', 'OFW2.csv']:
-                        station_color = 'indigo'
+                        # station_color = 'indigo'
+                        station_color = 'black'
+                        station_symbol = 's'
                     else:
-                        station_color = 'teal'
+                        # station_color = 'teal'
+                        station_color = 'black'
+                        station_symbol = '^'
                     if theta == np.pi/2.:
                         ax.errorbar(station_locs[itr][1], GPS_mean_vel, yerr=np.asarray([[GPS_mean_vel-min(GPS_vel[time_cut]*1e3)], [max(GPS_vel[time_cut]*1e3)-GPS_mean_vel]]), 
-                                    fmt='s', c=station_color,  markersize='20', markeredgecolor='black', elinewidth=5)
+                                    fmt=station_symbol, c=station_color,  markersize='40', markeredgecolor='black', elinewidth=7)
                     else:
                         ax.errorbar(station_locs[itr][0], GPS_mean_vel, yerr=np.asarray([[GPS_mean_vel-min(GPS_vel[time_cut]*1e3)], [max(GPS_vel[time_cut]*1e3)-GPS_mean_vel]]), 
-                                    fmt='s', c=station_color,  markersize='20', markeredgecolor='black', elinewidth=5)
+                                    fmt=station_symbol, c=station_color,  markersize='40', markeredgecolor='black', elinewidth=7)
                 else:
                     print("station: ", point, " not included")
                 itr+=1  
@@ -1162,4 +1195,87 @@ def mesh_resolution_analysis(model_list, avg_S, plot_time, ratio_list=None):
 
     plt.plot(avg_S, max_vel_list, lw=6)
     plt.scatter(avg_S, max_vel_list, s=200, edgecolors='black')
+    plt.show()
+
+# Plot the model data residuals points along the model profile
+def compare_residuals(models, mean_times, shift_time=None, stations=None, station_locs=None, symbol_list=None, label_list=None, size_list=None, colors=None): 
+
+    # get base profile
+    (x_0, disp_x, disp_y, disp_z, disp_r, disp_theta, vel_x, vel_y, vel_z, vel_r, vel_theta) = models[0].get_data(0, theta=None)
+
+    # iterate through models
+    max_val = -np.infty
+    min_val = np.infty
+    for model, symbol, label, size, color in zip(models, symbol_list, label_list, size_list, colors):
+
+        # get mean model velocities at each point
+        station_names = []
+        residuals = []
+        loc = 0
+        for point, station in zip(station_locs, stations):
+            x = point[0]*1e3
+            y = point[1]*1e3
+            r = np.sqrt(x**2 + y**2)
+
+            if x < 0 and y < 0:
+                r *= -1
+            elif x < 0 and y >= 0:
+                r *= -1
+
+            if x == 0 and y == 0:
+                theta = 0
+            elif x == 0 and y > 0:
+                theta = np.pi/2
+            elif x == 0 and y < 0:
+                theta = -np.pi/2
+            else:
+                theta = np.arctan(y/x)
+
+            # get mean  model velocity
+            model_vel_list = []
+            for t in mean_times:
+                model_time = model.get_timesteps(t)
+                (_, disp_x, disp_y, disp_z, disp_r, disp_theta, vel_x, vel_y, vel_z, vel_r, vel_theta) = model.get_data(model_time, theta=theta)
+                point_idx = (np.abs(x_0 - r)).argmin() #get point index
+                model_vel_list.append(vel_z[point_idx]*model.ms_to_mmyr)
+            mean_model_vel = np.mean(np.asarray(model_vel_list), axis=0)
+
+            # get mean station velocity
+            df = pd.read_csv(station)
+            GPS_times = df['time[yrs]'].values
+            GPS_vel = df['velocity[m/yr]'].values
+            
+            time_cut = (GPS_times >= mean_times[0]-500+shift_time) & (GPS_times <= mean_times[1]-500+shift_time)
+
+            # if the station has data in the time cut, append to all of the lists
+            if len(GPS_vel[time_cut]) > 0:
+
+                GPS_mean_vel = np.mean(GPS_vel[time_cut])*1e3
+                name = station[0:-4]
+
+                station_names.append(name)
+
+                residual = 100*(GPS_mean_vel-mean_model_vel)/GPS_mean_vel
+
+                if residual > max_val:
+                    max_val = residual
+                if residual < min_val:
+                    min_val = residual
+
+                residuals.append(residual)
+                loc+=1
+
+        plt.scatter(np.arange(loc), residuals, c=color, s=size, zorder=10, marker=symbol, label=label, edgecolors='black')
+
+
+    # plot
+    plt.grid()
+    plt.ylabel("Residual (% diff)", fontsize=40)
+    plt.xlabel("Station", fontsize=40)
+    plt.ylim([min_val-10000, max_val+1000])
+    plt.xticks(np.arange(loc), station_names, rotation ='horizontal', fontsize=30)
+    plt.yticks(fontsize=30)
+    plt.legend(fontsize=30)
+    plt.yscale('symlog')
+
     plt.show()

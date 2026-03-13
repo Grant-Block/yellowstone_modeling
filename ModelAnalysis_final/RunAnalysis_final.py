@@ -24,7 +24,8 @@ P361 = (-30.266, -44.706)
 
 ################################# model object declarations #############################################################
  
-Yellowstone_Run201 = AnalyzeModel_final.Analysis("Yellowstone_Run201", r_x=0.5*13, r_y=1.0*27.5) # best fit model
+Yellowstone_Run201 = AnalyzeModel_final.Analysis("Yellowstone_Run201", r_x=0.5*13, r_y=1.0*27.5) # best fit single source model
+Yellowstone_Run218_run3 = AnalyzeModel_final.Analysis("Yellowstone_Run218_run3", r_x=0.5*13, r_y=1.0*27.5, mesh_width=100e3) # best fit 2-source model
 
 Yellowstone_Run162 = AnalyzeModel_final.Analysis("Yellowstone_Run162", r_x=0.5*13, r_y=1.0*27.5) # uniform maxwell models used to look at depth variation (Fig. A4)
 Yellowstone_Run163 = AnalyzeModel_final.Analysis("Yellowstone_Run163", r_x=0.5*13, r_y=1.0*27.5)
@@ -77,15 +78,22 @@ Yellowstone_Run181_run2 = AnalyzeModel_final.Analysis("Yellowstone_Run181_run2",
 Yellowstone_Run181_run3 = AnalyzeModel_final.Analysis("Yellowstone_Run181_run3", r_x=0.5*13, r_y=1.0*27.5, mesh_width=100e3)
 Yellowstone_Run181_run4 = AnalyzeModel_final.Analysis("Yellowstone_Run181_run4", r_x=0.5*13, r_y=1.0*27.5)
 
+Yellowstone_Run207_run3 = AnalyzeModel_final.Analysis("Yellowstone_Run207_run3", r_x=0.5*13, r_y=1.0*27.5, mesh_width=100e3) # elastic half space model used to compare residuals
+Yellowstone_Run206_run2 = AnalyzeModel_final.Analysis("Yellowstone_Run206_run2", r_x=0.5*13, r_y=1.0*27.5, mesh_width=100e3) # layered no CR model
+
+Yellowstone_Run201_run3 = AnalyzeModel_final.Analysis("Yellowstone_Run201_run3", r_x=0.5*13, r_y=1.0*27.5, mesh_width=100e3) # Variations on the single source best fit model
+Yellowstone_Run201_run4 = AnalyzeModel_final.Analysis("Yellowstone_Run201_run4", r_x=0.5*13, r_y=1.0*27.5, mesh_width=100e3) 
+
+
+
+
 ################################# plot function calls ##############################################################################################
 
-# Function call to generate data files used in Fig. 3 (use makeObsFig_MRnew.py to generate the figure) and calculate model metrics
-Yellowstone_Run201.plot_point_station_avg(np.arange(500, 539, 1), [LKWY, P801, WLWY, HVWY, OFW2, P709], [MAWY, P686, P714, P360], 
-                                         'in_stations_mean_newgroups.csv', 'out_stations_mean_newgroups.csv', RG_file='hl_stations_mean.csv', 
-                                         shift_time=1986, mult_factor=[1, 5], plot_unscaled=True, pressure_func_file=None, write_files=True,
-                                         calc_metrics=True)
-
-# Function call to make the left panels of Fig. 4 a-c
+# Function calls to generate data files used in Fig. 5 (use makeObsFig_MRnew.py to generate the figure) and calculate model metrics
+# Yellowstone_Run201.plot_point_station_avg(np.arange(500, 539, 1), [LKWY, P801, WLWY, HVWY, OFW2, P709], [MAWY, P686, P714, P360], 
+#                                          'in_stations_mean_newgroups.csv', 'out_stations_mean_newgroups.csv', RG_file='hl_stations_mean.csv', 
+#                                          shift_time=1986, mult_factor=[1, 5], plot_unscaled=True, pressure_func_file=None, write_files=True,
+#                                          calc_metrics=True)
 # model_time = 2006-1986+500
 # Yellowstone_Run201.read_plot_groundsurf(model_time, mean_time_steps=[2005.5-1986+500, 2006.5-1986+500], parameter='vz', som_width=False, source=True, CR=True, CR_x=32, CR_y=55,
 #                                         CR_inner=[22, 40], inner_CR_disp=[0, 0],
@@ -94,11 +102,31 @@ Yellowstone_Run201.plot_point_station_avg(np.arange(500, 539, 1), [LKWY, P801, W
 #                                         out_points_list=[P711, MAWY, P686, P714, P360], 
 #                                         plot_caldera=False, log_scale=False)
 
-# Function call to make profile panels of Fig. 4 a-c
 # Yellowstone_Run201.plot_profiles_mean_time([2005.5-1986+500, 2006.5-1986+500], theta=None, shift_time=1986, lim=[-60,60], 
 #                                            plot_points=['MAWY.csv', 'P714.csv', 'P711.csv', 'HVWY.csv', 'LKWY.csv', 'P801.csv', 'P709.csv'],
 #                                            station_locs = [MAWY, P714, P711, HVWY, LKWY, P801, P709])
 # Yellowstone_Run201.plot_profiles_mean_time([2005.5-1986+500, 2006.5-1986+500], theta=np.pi/2., shift_time=1986, lim=[-60,60], 
+#                                            plot_points=['P360.csv', 'P686.csv', 'OFW2.csv', 'HVWY.csv', 'LKWY.csv', 'WLWY.csv'], 
+#                                            station_locs=[P360, P686, OFW2, HVWY, LKWY, WLWY])
+
+
+# Function calls to generate data files used in Fig. 6 (use makeObsFig_MRnew.py to generate the figure) and calculate model metrics
+# Yellowstone_Run218_run3.plot_point_station_avg(np.arange(500, 539, 1), [LKWY, P801, WLWY, HVWY, OFW2, P709], [MAWY, P686, P714, P360], 
+#                                          'in_stations_mean_newgroups.csv', 'out_stations_mean_newgroups.csv', RG_file='hl_stations_mean.csv', 
+#                                          shift_time=1986, mult_factor=[1, 5], plot_unscaled=True, pressure_func_file=None, write_files=True,
+#                                          calc_metrics=True)
+# model_time = 2006-1986+500
+# Yellowstone_Run218_run3.read_plot_groundsurf(model_time, mean_time_steps=[2005.5-1986+500, 2006.5-1986+500], parameter='vz', som_width=False, source=True, CR=True, CR_x=32, CR_y=55,
+#                                         CR_inner=[22, 40], inner_CR_disp=[0, 0],
+#                                         x_lim=[-75,75], y_lim=[-100,100], CR_disp=[-5.0, -0.75], profile=False, save=True, 
+#                                         in_points_list=[LKWY, P801, WLWY, P709, HVWY, OFW2], 
+#                                         out_points_list=[P711, MAWY, P686, P714, P360], 
+#                                         plot_caldera=False, log_scale=False)
+
+# Yellowstone_Run218_run3.plot_profiles_mean_time([2005.5-1986+500, 2006.5-1986+500], theta=None, shift_time=1986, lim=[-60,60], 
+#                                            plot_points=['MAWY.csv', 'P714.csv', 'P711.csv', 'HVWY.csv', 'LKWY.csv', 'P801.csv', 'P709.csv'],
+#                                            station_locs = [MAWY, P714, P711, HVWY, LKWY, P801, P709])
+# Yellowstone_Run218_run3.plot_profiles_mean_time([2005.5-1986+500, 2006.5-1986+500], theta=np.pi/2., shift_time=1986, lim=[-60,60], 
 #                                            plot_points=['P360.csv', 'P686.csv', 'OFW2.csv', 'HVWY.csv', 'LKWY.csv', 'WLWY.csv'], 
 #                                            station_locs=[P360, P686, OFW2, HVWY, LKWY, WLWY])
 
@@ -154,4 +182,50 @@ Yellowstone_Run201.plot_point_station_avg(np.arange(500, 539, 1), [LKWY, P801, W
 # Function call to make panels a, c in Figure A8
 # AnalyzeModel_final.mesh_resolution_analysis([Yellowstone_Run181_run2, Yellowstone_Run181_run3, Yellowstone_Run181_run4], [10, 5, 4.136], 520, 
 #                                       ratio_list=[253.1, 227.9, 435.2]) 
+
+# Function call to make S13
+# AnalyzeModel_final.compare_residuals([Yellowstone_Run201, Yellowstone_Run218_run3, Yellowstone_Run207_run3], [2005.5-1986+500, 2006.5-1986+500], shift_time=1986,
+#                                stations=['LKWY.csv', 'P801.csv', 'WLWY.csv', 'P709.csv', 'HVWY.csv', 'OFW2.csv', 'P711.csv', 'MAWY.csv', 'P686.csv', 
+#                                                       'P714.csv', 'P360.csv'],
+#                                 station_locs=[LKWY, P801, WLWY, P709, HVWY, OFW2, P711, MAWY, P686, P714, P360], 
+#                                 label_list=['1-source', '2-source', 'Elastic HS 1-source'], symbol_list=['o', 's', 'D'], size_list=[600, 400, 200],
+#                                 colors=['orange', 'green', 'black'])
+
+# Function call to make S14
+# model_time = 2015-1986+500
+# Yellowstone_Run206_run2.read_plot_groundsurf(model_time, mean_time_steps=[2009.5-1986+500, 2010.5-1986+500], parameter='vz', som_width=False, source=True,
+#                                         x_lim=[-50,50], y_lim=[-60,60], profile=False, save=True, 
+#                                         in_points_list=[LKWY, P801, WLWY, P709, HVWY, OFW2], 
+#                                         out_points_list=[P711, MAWY, P686, P714, P360],
+#                                         station_files=['LKWY.csv', 'P801.csv', 'WLWY.csv', 'P709.csv', 'HVWY.csv', 'OFW2.csv', 'P711.csv', 'MAWY.csv', 
+#                                                        'P686.csv', 'P714.csv', 'P360.csv'], 
+#                                         plot_caldera=False, log_scale=False)
+
+
+# model_time = 2015-1986+500
+# Yellowstone_Run207_run3.read_plot_groundsurf(model_time, mean_time_steps=[2009.5-1986+500, 2010.5-1986+500], parameter='vz', som_width=False, source=True,
+#                                         x_lim=[-50,50], y_lim=[-60,60], profile=False, save=True, 
+#                                         in_points_list=[LKWY, P801, WLWY, P709, HVWY, OFW2], 
+#                                         out_points_list=[P711, MAWY, P686, P714, P360],
+#                                         station_files=['LKWY.csv', 'P801.csv', 'WLWY.csv', 'P709.csv', 'HVWY.csv', 'OFW2.csv', 'P711.csv', 'MAWY.csv', 
+#                                                        'P686.csv', 'P714.csv', 'P360.csv'], 
+#                                         plot_caldera=False, log_scale=False)
+
+# Function calls to make S7
+# Yellowstone_Run206_run2.plot_point_station_avg(np.arange(500, 539, 0.5), [LKWY, P801, WLWY, HVWY, OFW2, P709], [MAWY, P686, P714, P360], 
+#                                          'in_stations_mean_newgroups.csv', 'out_stations_mean_newgroups.csv', RG_file='hl_stations_mean.csv', 
+#                                          shift_time=1986, mult_factor=[1, 5], plot_unscaled=True, pressure_func_file=None, write_files=False,
+#                                          calc_metrics=True)
+
+# Yellowstone_Run201_run3.plot_point_station_avg(np.arange(500, 539, 0.5), [LKWY, P801, WLWY, HVWY, OFW2, P709], [MAWY, P686, P714, P360], 
+#                                          'in_stations_mean_newgroups.csv', 'out_stations_mean_newgroups.csv', RG_file='hl_stations_mean.csv', 
+#                                          shift_time=1986, mult_factor=[1, 5], plot_unscaled=True, pressure_func_file=None, write_files=False,
+#                                          calc_metrics=True)
+
+# Yellowstone_Run201_run4.plot_point_station_avg(np.arange(500, 539, 0.5), [LKWY, P801, WLWY, HVWY, OFW2, P709], [MAWY, P686, P714, P360], 
+#                                          'in_stations_mean_newgroups.csv', 'out_stations_mean_newgroups.csv', RG_file='hl_stations_mean.csv', 
+#                                          shift_time=1986, mult_factor=[1, 5], plot_unscaled=True, pressure_func_file=None, write_files=False,
+#                                          calc_metrics=True)
+
+
 
