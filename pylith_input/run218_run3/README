@@ -1,0 +1,23 @@
+Source dim = 0.5*13 km, 1.0*27.5 km
+Second source 2.3x volume of the main source
+Second source at 24 km depth and shifted by (-20 km, -5 km)
+uniform CR
+outer CR x,y = 32, 55km
+CR is eliptical cylinder, outer CR height = 26 km (2-28 km depth)
+outer CR shift: (-5.0, -0.75) km (based on tomography)
+Maxwell rheology
+CR Vs = 2500 m/s
+CR eta = 6.308E16 Pa*s
+Source depth = 5.0 
+No asthenosphere, domain depth = 100 km. 
+Courser mesh with CR meshing distance = 5 km
+Smaller domain size (200x200x100) km
+dP/dt= derived from GPS (max 37 kPa/yr), NO SMOOTHING ON P(t)
+Second source P(t) scaled by -1.0
+T = derived from GPS
+long depress-repress before YS pressure function
+P_start=100 kPa
+
+
+
+
