@@ -1,0 +1,7 @@
+No CR 
+source x,y =  0.5*13km, 1.0*27.5km source z rad = 1.5 km.
+Source depth = 5.0 km
+UC extends to 5 km.
+LC extends to 50 km. 
+No asthenosphere, domain depth = 100 km
+x, y dim = 200; full domain: (200x200x100) km

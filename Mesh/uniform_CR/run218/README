@@ -1,0 +1,14 @@
+Uniform CR 
+source x,y =  0.5*13km, 1.0*27.5km source z rad = 1.5 km.
+second source x,y = 0.5*13*2.3^(1/3) km, 1.0*27.5*2.3^(1/3) km, z rad = 1.5*2.3^(1/3) km. This gives second source volume = 2.3x source volume
+CRx,y = 32 km, 55 km (based on tomography lines)
+CR shift = (-5.0, -0.75) km
+Source depth = 4.0 km
+Second source depth = 24 km
+Second source shift = (-20.0, -5.0) km 
+UC extends to 5 km.
+LC extends to 50 km. 
+CR height: 26km (extending from 2.0-28.0 km depth)
+No asthenosphere, domain depth = 100 km
+x, y dim = 200; full domain: (200x200x100) km
+CR mesh size = 5 km

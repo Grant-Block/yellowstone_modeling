@@ -1,0 +1,4 @@
+Elastic half space
+source x,y =  0.5*13km, 1.0*27.5km source z rad = 1.5 km.
+Source depth = 5.0 km
+x, y dim = 200; full domain: (200x200x100) km
