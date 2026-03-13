@@ -39,7 +39,7 @@ eq_df = pd.read_csv('ys_eq.csv',sep=',')#, names=['time'], skiprows=1)
 # inner = [ 'LKWY', 'HVWY','WLWY', 'P801','P709', 'OFW2']
 # outer = ['NRWY','P711', 'P680','P686', 'P710', 'P714', 'MAWY','P360']
 
-HLgroup = ['P361','P676', 'P456', 'P712', 'P460', 'P457', 'P461', 'P721']
+HLgroup = ['P361','P676', 'P456', 'P712', 'P460', 'P457', 'P461', 'P721', 'P720', 'P718', 'P710']
 inner = ['LKWY', 'P801', 'WLWY', 'P709', 'HVWY', 'OFW2']
 outer = ['NRWY', 'P711', 'MAWY', 'P686', 'P714', 'P360']
 
@@ -189,7 +189,7 @@ axs[0].plot(
 # read and plot average of outer stations
 axs[1].plot(
         outave_nrwy['time[yrs]'].values, 1.e3*outave_nrwy['velocity[m/yr]'].values,
-        label=r'$\langle V\rangle^{outer}$',
+        label=r'$\langle V\rangle^{anti}$',
         color='teal',
         linewidth=15.0, 
         alpha=0.55, 
@@ -199,7 +199,7 @@ axs[1].plot(
 # read and plot average of outer stations including NRWY
 axs[1].plot(
         outave['time[yrs]'].values, 1.e3*outave['velocity[m/yr]'].values,
-        label=r'$\langle V\rangle^{outer}$ with NRWY',
+        label=r'$\langle V\rangle^{anti_{incNRWY}}$',
         color='gray',
         linewidth=8.0, 
         alpha=0.5, 
@@ -318,7 +318,8 @@ axs[1].grid(True, which='minor', color='lightgray', linestyle='--', linewidth=0.
 axs[2].minorticks_on()
 axs[2].grid(True, which='minor', color='lightgray', linestyle='--', linewidth=0.5)
 
-axs[1].set_ylim(-25, 10)
+#axs[1].set_ylim(-25, 10)
+axs[1].set_ylim(-10, 7.5)
 axs[2].set_ylim(-5, 8)
 axs[2].set_xlabel('Years',fontsize=16)
 axs[2].set_ylabel('Velocity (mm/yr)',fontsize=16)
@@ -377,7 +378,9 @@ model_inner_df = pd.read_csv(directory_path+'/model_inner.csv', sep=',')
 model_outer_df = pd.read_csv(directory_path+'/model_outer.csv', sep=',')
 
 
-fig, axs = plt.subplots(2, 1, figsize=(14.8, 6),sharex=True)#,layout="constrained")
+fig, axs = plt.subplots(2, 1, figsize=(18.8, 6),sharex=True)#,layout="constrained")
+# fig, axs = plt.subplots(2, 1, figsize=(14.8, 6),sharex=True)#,layout="constrained")
+
 
 axs[0].add_patch(Polygon(pol1,closed=True, facecolor='palegreen', alpha=0.5))
 axs[0].add_patch(Polygon(pol3,closed=True, facecolor='palegreen', alpha=0.5))
@@ -388,7 +391,8 @@ axs[0].plot(
         inave['time[yrs]'].values, 1.e3*inave['velocity[m/yr]'].values,
         label=r'$\langle V\rangle^{inner}$',
         color='indigo',
-        linewidth=15.0, 
+        linewidth=20.0,
+        # linewidth=10.0,  
         alpha=0.5, 
     )
 
@@ -396,7 +400,8 @@ axs[0].plot(
         inmerge['time[yrs]'].values, 1.e3*inmerge['velocity_diff'].values,
         label=r'$\langle V\rangle^{inner}$ - $\langle V\rangle^{RG}$',
         color='black',
-        linewidth=5.0, 
+        linewidth=10.0,
+        # linewidth=5.0, 
         alpha=0.5, 
         linestyle="dashed"
     )
@@ -404,35 +409,38 @@ axs[0].plot(
 # plot the model average
 axs[0].plot(
     model_inner_df['time[yrs]'].values, model_inner_df['velocity[mm/yr]'].values,
-    label=r'Best fit model $\langle V\rangle^{inner}$',
+    label=r'2-source',
     color='indigo',
-    linewidth=5,
+    linewidth=10,
+    # linewidth=5,
     alpha=0.7
 )
 
 # read and plot average of outer stations
 axs[1].plot(
         outave_nrwy['time[yrs]'].values, 1.e3*outave_nrwy['velocity[m/yr]'].values,
-        label=r'$\langle V\rangle^{outer}$',
+        label=r'$\langle V\rangle^{anti}$',
         color='teal',
-        linewidth=15.0, 
+        linewidth=20.0,
+        # linewidth=10.0,  
         alpha=0.55, 
     )
 
 # read and plot average of outer stations including NRWY
-axs[1].plot(
-        outave['time[yrs]'].values, 1.e3*outave['velocity[m/yr]'].values,
-        label=r'$\langle V\rangle^{outer}$ with NRWY',
-        color='gray',
-        linewidth=8.0, 
-        alpha=0.5, 
-    )
+# axs[1].plot(
+#         outave['time[yrs]'].values, 1.e3*outave['velocity[m/yr]'].values,
+#         label=r'$\langle V\rangle^{anti}$ with NRWY',
+#         color='gray',
+#         linewidth=8.0, 
+#         alpha=0.5, 
+#     )
 
 axs[1].plot(
         outmerge['time[yrs]'].values, 1.e3*outmerge['velocity_diff'].values,
-        label=r'$\langle V\rangle^{outer}$ - $\langle V\rangle^{RG}$',
+        label=r'$\langle V\rangle^{anti}$ - $\langle V\rangle^{RG}$',
         color='black',
-        linewidth=5.0, 
+        # linewidth=5.0, 
+        linewidth=10.0,
         alpha=0.5, 
         linestyle="dashed"
     )
@@ -440,20 +448,21 @@ axs[1].plot(
 # plot the model outer average (unscaled and scaled)
 axs[1].plot(
     model_outer_df['time[yrs]'].values, model_outer_df['velocity[mm/yr]'].values,
-    label=r'Best fit model $\langle V\rangle^{outer}$',
+    label=r'2-source',
     color='teal',
-    linewidth=5,
+    # linewidth=5,
+    linewidth=10,
     alpha=0.7
 )
 
-axs[1].plot(
-    model_outer_df['time[yrs]'].values, model_outer_df['velocity[mm/yr]'].values*5,
-    label=r'Best fit model $\langle V\rangle^{outer}$, scaled x5',
-    color='teal',
-    linewidth=5,
-    linestyle="dashed",
-    alpha=0.7
-)
+# axs[1].plot(
+#     model_outer_df['time[yrs]'].values, model_outer_df['velocity[mm/yr]'].values*5,
+#     label=r'1-source $\times$ 5',
+#     color='teal',
+#     linewidth=10,
+#     linestyle="dashed",
+#     alpha=0.7
+# )
 
 # --- Histogram: count number of quakes per time bin ---
 hist_counts, _ = np.histogram(eq_df['decyr'], bins=bins)
@@ -469,7 +478,8 @@ ax2.bar(
 ax2.set_ylim(0, 125)
 ax2.set_ylabel('# Earthquakes', fontsize=14)
 ax2.tick_params(axis='y')#, labelcolor='gray')
-axs[0].set_ylim(-25, 50)
+# axs[0].set_ylim(-25, 50)
+axs[0].set_ylim(-40, 65)
 axs[0].set_xlim(1995, 2025)
 #axs[0].set_xlabel('Years',fontsize=16)
 axs[0].set_ylabel('Velocity (mm/yr)',fontsize=16)
@@ -487,6 +497,7 @@ axs[1].minorticks_on()
 axs[1].grid(True, which='minor', color='lightgray', linestyle='--', linewidth=0.5)
 
 axs[1].set_ylim(-10, 8)
+# axs[1].set_ylim(-15, 8)
 axs[1].set_xlabel('Years',fontsize=16)
 axs[1].set_ylabel('Velocity (mm/yr)',fontsize=16)
 axs[1].tick_params(axis='both', labelsize=14)
