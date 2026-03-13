@@ -1,0 +1,14 @@
+Nested CR 
+source x,y =  0.5*13km, 1.0*27.5km source z rad = 1.5 km.
+CRx,y = 32 km, 55 km (based on tomography lines)
+Inner CRx,y = 22 km, 40 km (based on tomography lines)
+CR shift = (-5.0, -0.75) km
+Inner CR shift = (0, 0) km
+Source depth = 5.0 km
+UC extends to 10 km instead of 5 km!
+LC extends to 50 km. 
+CR height: 26km (extending from 2.0-28.0 km depth)
+Inner CR height: 19km (exending from 3.0-22.0 km depth)
+No asthenosphere, domain depth = 100 km
+x, y dim = 200; full domain: (200x200x100) km
+CR mesh size = 5 km
