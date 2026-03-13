@@ -6,18 +6,15 @@ Analyze_GPS_final.py contains and specifies each function call used to make a sp
 
 The folder GPS_data contains the unprocessed cGPS data that is processed and used in Analyze_GPS_final.py.
 
-The folder Data_fig2d contains smoothed individual cGPS velocities, as well as inner, outer, and regional group velocities which are used for making figures 2 and 3.
+The folder Data_fig2d contains smoothed individual cGPS velocities, as well as inner, anticorrelated, and regional group velocities which are used for making figures 3 and 4.
 The script makeObsFig_MRnew.py uses this data to generate those plots and is internally documented. 
 
 The folder ModelAnalysis_final contains all scripts and data necessary to analyze and plot model results with the caveat of the completed model .h5 files themselves.
 These files are too large to upload here, but selected input files to run the models are included (see below). If you would like any model .h5 files or other input
-files that are not included, please email the corresponding author at mroy@unm.edu. The script RunAnalysis_final.py contains all function calls used to conduct the 
-analysis and generate figures having to do with model results (e.g. Figure 4). It documents which function call generates which figure. It calls functions from the
-scripts AnalyzeModel_final.py ad ModelStorage_final.py which are both internally documented.
+files that are not included, please email the corresponding author at mroy@unm.edu. The script RunAnalysis_final.py contains all function calls used to conduct the  analysis and generate figures having to do with model results (e.g. Figures 5,6). It documents which function call generates which figure. It calls functions from the scripts AnalyzeModel_final.py ad ModelStorage_final.py which are both internally documented.
 
-The folder Quiver_CSV stores data files to generate the quiver plots of Figure A1. The script which generates the panels is make_quiver_from_slice.m. 
+The folder Quiver_CSV stores data files to generate the quiver plots of Figure S11. The script which generates the panels is make_quiver_from_slice.m. 
 
-The folders Mesh, timedb, and pylith_input contain input files needed to run selected PyLith models (given in the table in Figure A5). pylith_input contains the .cfg
-files to run the models, while Mesh and timedb contain other input files that the .cfg calls. Each file is consistently named by run number. Again, if you would like
-results from model runs (.h5 files) or additional model input files not included here, please email the corresponding author at mroy@unm.edu. 
+The folders Mesh, timedb, and pylith_input contain input files needed to run selected PyLith models (given in Figure S5, Table S3). pylith_input contains the .cfg
+files to run the models, while Mesh and timedb contain other input files that the .cfg calls. Each file is consistently named by run number. Again, if you would like results from model runs (.h5 files) or additional model input files not included here, please email the corresponding author at mroy@unm.edu. 
 
